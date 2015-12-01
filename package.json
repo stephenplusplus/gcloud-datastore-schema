@@ -1,0 +1,31 @@
+{
+  "name": "gcloud-datastore-schema",
+  "version": "0.0.0",
+  "description": "Define and follow a schema for your Datastore entities",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "google cloud datastore",
+    "datastore",
+    "schema"
+  ],
+  "author": "Stephen Sawchuk <sawchuk@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "gcloud": "^0.25.1",
+    "mocha": "^2.3.4",
+    "standard": "^5.4.1"
+  },
+  "dependencies": {
+    "arrify": "^1.0.0",
+    "is": "^3.1.0"
+  },
+  "standard": {
+    "globals": [
+      "describe",
+      "it"
+    ]
+  }
+}
