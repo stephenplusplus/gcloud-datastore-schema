@@ -102,15 +102,15 @@ var validate = function (schema, data) {
   return errorMessages
 }
 
-module.exports = function (dataset) {
+module.exports = function (datastore) {
   var schemas = {}
 
-  dataset.register = function (kind, schema) {
+  datastore.register = function (kind, schema) {
     schemas[kind] = schema
   }
 
-  var save = dataset.save
-  dataset.save = function (entities, callback) {
+  var save = datastore.save
+  datastore.save = function (entities, callback) {
     var schemaValidationError = new Error('Schema validation failed')
     schemaValidationError.code = 'ESCHEMAVIOLATION'
     schemaValidationError.errors = []
@@ -129,8 +129,8 @@ module.exports = function (dataset) {
     })
 
     if (schemaValidationError.errors.length > 0) callback(schemaValidationError)
-    else save.apply(dataset, arguments)
+    else save.apply(datastore, arguments)
   }
 
-  return dataset
+  return datastore
 }

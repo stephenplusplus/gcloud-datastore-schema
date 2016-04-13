@@ -7,9 +7,9 @@ var schema = require('./')
 
 describe('gcloud-datastore-schema', function () {
   it('should catch errors from the readme', function (done) {
-    var dataset = schema(gcloud.datastore.dataset({ projectId: 'project-id' }))
+    var datastore = schema(gcloud.datastore({ projectId: 'project-id' }))
 
-    dataset.register('Person', {
+    datastore.register('Person', {
       name: String,
       age: Number,
       tools: Array,
@@ -28,8 +28,8 @@ describe('gcloud-datastore-schema', function () {
       }
     })
 
-    dataset.save({
-      key: dataset.key(['Person']),
+    datastore.save({
+      key: datastore.key('Person'),
       data: {
         name: 'Doc',
         age: 8,

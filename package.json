@@ -14,7 +14,7 @@
   "author": "Stephen Sawchuk <sawchuk@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "gcloud": "^0.25.1",
+    "gcloud": "^0.30.3",
     "mocha": "^2.3.4",
     "standard": "^5.4.1"
   },

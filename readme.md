@@ -8,10 +8,10 @@ $ npm install --save gcloud-datastore-schema
 var gcloud = require('gcloud');
 var schema = require('gcloud-datastore-schema');
 
-var dataset = schema(gcloud.datastore.dataset({/*...*/}));
+var datastore = schema(gcloud.datastore({/*...*/}));
 
 // New method: register
-dataset.register('Person', {
+datastore.register('Person', {
   // Native JavaScript types
   name: String,
   age: Number,
@@ -40,8 +40,8 @@ dataset.register('Person', {
 
 // The original save method will now validate by default
 // So let's make it mad
-dataset.save({
-  key: dataset.key(['Person']),
+datastore.save({
+  key: datastore.key(['Person']),
   data: {
     name: 'Doc',
     age: 8,
