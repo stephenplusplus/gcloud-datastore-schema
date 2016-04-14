@@ -16,6 +16,7 @@ datastore.register('Person', {
   name: String,
   age: Number,
   tools: Array,
+  favoriteNumbers: [Number],
   isPremiumUser: Boolean,
 
   // Datastore types
@@ -32,6 +33,20 @@ datastore.register('Person', {
     }
   },
 
+  // Nested array schemas
+  phoneNumbers: [
+    {
+      number: String,
+      metadata: {
+        type: String,
+        // Nested nested array schemas
+        availability: [
+          String
+        ]
+      }
+    }
+  ],
+
   // Custom validators
   fullName: function (input) {
     return input.split(' ').length > 1;
@@ -46,6 +61,7 @@ datastore.save({
     name: 'Doc',
     age: 8,
     tools: ['Stethoscope', 'Positive attitude'],
+    favoriteNumbers: [16, 91],
     gpa: gcloud.datastore.int(4.0),
     address: {
       streetNumber: 123,
@@ -55,6 +71,17 @@ datastore.save({
         secondPart: 4444
       }
     },
+    phoneNumbers: [
+      {
+        number: '555-1212',
+        metadata: {
+          availability: [
+            '9-5',
+            95
+          ]
+        }
+      }
+    ],
     fullName: 'Doc',
     extraData: true,
     extraExtraData: false
@@ -68,10 +95,12 @@ datastore.save({
   //     {
   //       kind: 'Person',
   //       errors: [
-  //         'Schema definition expected property: isPremiumUser',
+  //         'Schema definition expected property: "isPremiumUser"',
   //         'Schema definition violated for property: "gpa". Expected type: Double, received: Int',
-  //         'Schema definition violated for property: fullName',
-  //         'Unexpected properties found: extraData, extraExtraData'
+  //         'Schema definition expected property: "phoneNumbers[].metadata.type"',
+  //         'Schema definition violated for property: "phoneNumbers[].metadata.availability[].availability". Expected type: String, received: 95',
+  //         'Schema definition violated for property: "fullName"',
+  //         'Unexpected properties found: "extraData", "extraExtraData"'
   //       ]
   //     }
   //   ]

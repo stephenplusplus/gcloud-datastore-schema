@@ -29,74 +29,111 @@ var getKind = function (key) {
   }
 }
 
-var validate = function (schema, data) {
+var validateType = function (intendedType, prop, value) {
+  var errorMessages = []
+
+  // Is it a native type?
+  if (intendedType === global[intendedType.name]) {
+    if (!is.type(value, intendedType.name.toLowerCase())) {
+      // Some types don't exist on `is`, e.g. Buffer. One last check:
+      if (!(value instanceof global[intendedType.name])) {
+        errorMessages.push([
+          'Schema definition violated for property: "' + prop + '".',
+          'Expected type: ' + intendedType.name + ', received: ' + JSON.stringify(value)
+        ].join(' '))
+      }
+    }
+
+    return errorMessages
+  }
+
+  // Is it a custom Datastore type?
+  for (var customTypeName in customTypes) {
+    var customTypeStringified = customTypes[customTypeName]
+
+    if (intendedType.toString() === customTypeStringified) {
+      if (value.constructor.name !== customTypeName) {
+        errorMessages.push([
+          'Schema definition violated for property: "' + prop + '".',
+          'Expected type: ' + customTypeName + ', received: ' + value.constructor.name
+        ].join(' '))
+      }
+
+      continue
+    }
+  }
+
+  // Assume it's a custom intendedType function
+  if (!intendedType(value)) {
+    errorMessages.push('Schema definition violated for property: "' + prop + '"')
+  }
+
+  return errorMessages
+}
+
+var validateSchema = function (schema, data) {
   var errorMessages = []
   var dataProperties = Object.keys(data)
 
   for (var prop in schema) {
     var validator = schema[prop]
+
+    if (!validator) {
+      errorMessages.push('Schema definition not found for property: "' + prop + '"')
+      continue
+    }
+
+    if (!is.defined(data[prop])) {
+      errorMessages.push('Schema definition expected property: "' + prop + '"')
+      continue
+    }
+
     var value = data[prop]
+    var nestedErrorMessages = []
 
     if (dataProperties.indexOf(prop) > -1) {
       dataProperties.splice(dataProperties.indexOf(prop), 1)
     }
 
-    // Is nested schema?
     if (is.object(validator)) {
-      validate(validator, value)
-      continue
-    }
+      // Nested schema
+      nestedErrorMessages = validateSchema(validator, value)
+    } else if (is.array(validator)) {
+      // Array with a nested schema
+      var arraySchema = validator[0]
 
-    if (!validator || !is.fn(validator)) {
-      errorMessages.push('Schema definition not found for property: ' + prop)
-      continue
-    }
-
-    if (!is.defined(value)) {
-      errorMessages.push('Schema definition expected property: ' + prop)
-      continue
-    }
-
-    // Is it a native type?
-    if (validator === global[validator.name]) {
-      if (!is.type(data[prop], validator.name.toLowerCase())) {
-        // Some types don't exist on `is`, e.g. Buffer. One last check:
-        if (!(value instanceof global[validator.name])) {
-          errorMessages.push([
-            'Schema definition violated for property: "' + prop + '".',
-            'Expected type: ' + validator.name + ', received: ' + JSON.stringify(value)
-          ].join(' '))
-        }
+      if (!is.array(value)) {
+        var nestedErrorMessage = [
+          'Schema definition violated for property: "',
+          'Expected type: Array, received: ' + value.constructor.name
+        ].join(' ')
+        nestedErrorMessages.push(nestedErrorMessage)
+      } else {
+        value
+          .map(function (value) {
+            if (is.object(value)) return validateSchema(arraySchema, value)
+            if (is.array(value)) return value.map(validateType.bind(null, arraySchema, prop))
+            return validateType(arraySchema, prop, value)
+          })
+          .forEach(function (errors) {
+            if (errors.length > 0) nestedErrorMessages = errors
+          })
       }
-
-      continue
+    } else {
+      errorMessages = errorMessages.concat(validateType(validator, prop, value))
     }
 
-    // Is it a custom Datastore type?
-    for (var customTypeName in customTypes) {
-      var customTypeStringified = customTypes[customTypeName]
-
-      if (validator.toString() === customTypeStringified) {
-        if (value.constructor.name !== customTypeName) {
-          errorMessages.push([
-            'Schema definition violated for property: "' + prop + '".',
-            'Expected type: ' + customTypeName + ', received: ' + value.constructor.name
-          ].join(' '))
-        }
-
-        continue
-      }
-    }
-
-    // Assume it's a custom validator function
-    if (!validator(value)) {
-      errorMessages.push('Schema definition violated for property: ' + prop)
-      continue
+    if (nestedErrorMessages.length > 0) {
+      nestedErrorMessages = nestedErrorMessages.map(function (errorMessage) {
+        var separator = is.object(validator) ? '.' : '[].'
+        return errorMessage.replace('"', '"' + prop + separator)
+      })
+      errorMessages = errorMessages.concat(nestedErrorMessages)
     }
   }
 
   if (dataProperties.length > 0) {
-    errorMessages.push('Unexpected properties found: ' + dataProperties.join(', '))
+    errorMessages.push('Unexpected properties found: "' + dataProperties.join('", "') + '"')
   }
 
   return errorMessages
@@ -119,7 +156,7 @@ module.exports = function (datastore) {
       var kind = getKind(entity.key)
       if (!schemas[kind]) return
 
-      var validationFailureMessages = validate(schemas[kind], entity.data)
+      var validationFailureMessages = validateSchema(schemas[kind], entity.data)
       if (validationFailureMessages.length > 0) {
         schemaValidationError.errors.push({
           kind: kind,
